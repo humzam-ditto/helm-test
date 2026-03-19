@@ -1,0 +1,49 @@
+suite: hpa
+templates:
+  - hpa.yaml
+tests:
+  - it: renders nothing when autoscaling is disabled
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: is an HPA when enabled
+    set:
+      autoscaling.enabled: true
+    asserts:
+      - isKind:
+          of: HorizontalPodAutoscaler
+      - isAPIVersion:
+          of: autoscaling/v2
+
+  - it: targets the correct deployment
+    set:
+      autoscaling.enabled: true
+    release:
+      name: test-release
+    asserts:
+      - equal:
+          path: spec.scaleTargetRef.name
+          value: test-release-sample-app
+
+  - it: sets min and max replicas
+    set:
+      autoscaling.enabled: true
+      autoscaling.minReplicas: 2
+      autoscaling.maxReplicas: 10
+    asserts:
+      - equal:
+          path: spec.minReplicas
+          value: 2
+      - equal:
+          path: spec.maxReplicas
+          value: 10
+
+  - it: sets CPU utilization target
+    set:
+      autoscaling.enabled: true
+      autoscaling.targetCPUUtilizationPercentage: 70
+    asserts:
+      - equal:
+          path: spec.metrics[0].resource.target.averageUtilization
+          value: 70
